@@ -20,6 +20,7 @@ import unicodedata
 import hashlib
 import os
 import six
+import json
 
 
 @never_cache
@@ -50,7 +51,8 @@ def home(request):
         return out_
 
     storage = get_storage(request)
-    query = ''
+    version = rosetta.get_version(True)
+
     if storage.has('rosetta_i18n_fn'):
         rosetta_i18n_fn = storage.get('rosetta_i18n_fn')
         rosetta_i18n_app = get_app_name(rosetta_i18n_fn)
@@ -60,12 +62,7 @@ def home(request):
         if rosetta_i18n_write:
             rosetta_i18n_pofile = pofile(rosetta_i18n_fn, wrapwidth=rosetta_settings.POFILE_WRAP_WIDTH)
             for entry in rosetta_i18n_pofile:
-                entry.md5hash = hashlib.md5(
-                    (six.text_type(entry.msgid) +
-                    six.text_type(entry.msgstr) +
-                    six.text_type(entry.msgctxt or "")).encode('utf8')
-                ).hexdigest()
-
+                entry.md5hash = hashlib.md5(entry.msgid.encode("utf8") + entry.msgstr.encode("utf8")).hexdigest()
         else:
             rosetta_i18n_pofile = storage.get('rosetta_i18n_pofile')
 
@@ -175,11 +172,15 @@ def home(request):
                 storage.set('rosetta_i18n_pofile', rosetta_i18n_pofile)
 
                 # Retain query arguments
-                query_arg = '?_next=1'
-                if 'query' in request.GET or 'query' in request.POST:
-                    query_arg += '&query=%s' % request.REQUEST.get('query')
+                query_arg = ''
+                if 'query' in request.REQUEST:
+                    query_arg = '?query=%s' % request.REQUEST.get('query')
                 if 'page' in request.GET:
-                    query_arg += '&page=%d&_next=1' % int(request.GET.get('page'))
+                    if query_arg:
+                        query_arg = query_arg + '&'
+                    else:
+                        query_arg = '?'
+                    query_arg = query_arg + 'page=%d' % int(request.GET.get('page'))
                 return HttpResponseRedirect(reverse('rosetta-home') + iri_to_uri(query_arg))
         rosetta_i18n_lang_code = storage.get('rosetta_i18n_lang_code')
 
@@ -201,14 +202,6 @@ def home(request):
             page = int(request.GET.get('page'))
         else:
             page = 1
-
-        if '_next' in request.GET or '_next' in request.POST:
-            page += 1
-            if page > paginator.num_pages:
-                page = 1
-            query_arg = '?page=%d' % page
-            return HttpResponseRedirect(reverse('rosetta-home') + iri_to_uri(query_arg))
-
         rosetta_messages = paginator.page(page).object_list
         main_language = None
         if rosetta_settings.MAIN_LANGUAGE and rosetta_settings.MAIN_LANGUAGE != rosetta_i18n_lang_code:
@@ -235,7 +228,11 @@ def home(request):
         except AttributeError:
             ADMIN_MEDIA_PREFIX = settings.STATIC_URL + 'admin/'
             ADMIN_IMAGE_DIR = ADMIN_MEDIA_PREFIX + 'img/'
-
+        ENABLE_TRANSLATION_SUGGESTIONS = rosetta_settings.AZURE_CLIENT_ID and rosetta_settings.AZURE_CLIENT_SECRET and rosetta_settings.ENABLE_TRANSLATION_SUGGESTIONS
+        AZURE_CLIENT_ID = rosetta_settings.AZURE_CLIENT_ID
+        AZURE_CLIENT_SECRET = rosetta_settings.AZURE_CLIENT_SECRET
+        MESSAGES_SOURCE_LANGUAGE_NAME = rosetta_settings.MESSAGES_SOURCE_LANGUAGE_NAME
+        MESSAGES_SOURCE_LANGUAGE_CODE = rosetta_settings.MESSAGES_SOURCE_LANGUAGE_CODE
         if storage.has('rosetta_last_save_error'):
             storage.delete('rosetta_last_save_error')
             rosetta_last_save_error = True
@@ -362,6 +359,7 @@ def lang_sel(request, langid, idx):
     """
     Selects a file to be translated
     """
+
     storage = get_storage(request)
     if langid not in [l[0] for l in settings.LANGUAGES]:
         raise Http404
@@ -379,12 +377,7 @@ def lang_sel(request, langid, idx):
         storage.set('rosetta_i18n_fn',  file_)
         po = pofile(file_)
         for entry in po:
-            entry.md5hash = hashlib.new('md5',
-                (six.text_type(entry.msgid) +
-                six.text_type(entry.msgstr) +
-                six.text_type(entry.msgctxt or "")).encode('utf8')
-            ).hexdigest()
-
+            entry.md5hash = hashlib.md5(entry.msgid.encode("utf8") + entry.msgstr.encode("utf8")).hexdigest()
         storage.set('rosetta_i18n_pofile', po)
         try:
             os.utime(file_, None)
@@ -393,3 +386,46 @@ def lang_sel(request, langid, idx):
             storage.set('rosetta_i18n_write', False)
 
         return HttpResponseRedirect(reverse('rosetta-home'))
+
+lang_sel = never_cache(lang_sel)
+lang_sel = user_passes_test(lambda user: can_translate(user), settings.LOGIN_URL)(lang_sel)
+
+
+def can_translate(user):
+    if not getattr(settings, 'ROSETTA_REQUIRES_AUTH', True):
+        return True
+    if not user.is_authenticated():
+        return False
+    elif user.is_superuser and user.is_staff:
+        return True
+    else:
+        try:
+            from django.contrib.auth.models import Group
+            translators = Group.objects.get(name='translators')
+            return translators in user.groups.all()
+        except Group.DoesNotExist:
+            return False
+
+from microsofttranslator import Translator, TranslateApiException
+
+def translate_text(request):
+    language_from = request.GET.get('from', None)
+    language_to = request.GET.get('to', None)
+    text = request.GET.get('text', None)
+
+    if language_from == language_to:
+        data = { 'success' : True, 'translation' : text }
+    else:
+        # run the translation:
+        AZURE_CLIENT_ID = getattr(settings, 'AZURE_CLIENT_ID', None)
+        AZURE_CLIENT_SECRET = getattr(settings, 'AZURE_CLIENT_SECRET', None)
+
+        translator = Translator(AZURE_CLIENT_ID, AZURE_CLIENT_SECRET)
+
+        try:
+            translated_text = translator.translate(text, language_to)
+            data = { 'success' : True, 'translation' : translated_text }
+        except TranslateApiException as e:
+            data = { 'success' : False, 'error' : "Translation API Exception: {0}".format(e.message) }
+
+    return HttpResponse(json.dumps(data), mimetype='application/json')
