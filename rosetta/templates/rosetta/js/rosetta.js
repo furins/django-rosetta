@@ -19,7 +19,7 @@ google.setOnLoadCallback(function() {
         orig = unescape(orig).replace(/<br\s?\/?>/g,'\n').replace(/<code>/,'').replace(/<\/code>/g,'').replace(/&gt;/g,'>').replace(/&lt;/g,'<');
         a.attr('class','suggesting').html('...');
 
-        $.getJSON("/rosetta/translate/", {
+        $.getJSON("{% url 'translate_text' %}", {
                 from: sourceLang,
                 to: destLang,
                 text: orig
