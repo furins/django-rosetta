@@ -14,6 +14,8 @@ from rosetta.poutil import find_pos, pagination_range, timestamp_with_timezone
 from rosetta.signals import entry_changed, post_save
 from rosetta.storage import get_storage
 from rosetta.access import can_translate
+from microsofttranslator import Translator, TranslateApiException
+
 import re
 import rosetta
 import unicodedata
@@ -172,17 +174,6 @@ def home(request):
                     storage.set('rosetta_i18n_write', False)
                 storage.set('rosetta_i18n_pofile', rosetta_i18n_pofile)
 
-                # Retain query arguments
-                query_arg = ''
-                if 'query' in request.REQUEST:
-                    query_arg = '?query=%s' % request.REQUEST.get('query')
-                if 'page' in request.GET:
-                    if query_arg:
-                        query_arg = query_arg + '&'
-                    else:
-                        query_arg = '?'
-                    query_arg = query_arg + 'page=%d' % int(request.GET.get('page'))
-                return HttpResponseRedirect(reverse('rosetta-home') + iri_to_uri(query_arg))
         rosetta_i18n_lang_code = storage.get('rosetta_i18n_lang_code')
 
         if 'query' in request.REQUEST and request.REQUEST.get('query', '').strip():
@@ -199,10 +190,13 @@ def home(request):
             else:
                 paginator = Paginator([e for e in rosetta_i18n_pofile if not e.obsolete], rosetta_settings.MESSAGES_PER_PAGE)
 
-        if 'page' in request.GET and int(request.GET.get('page')) <= paginator.num_pages and int(request.GET.get('page')) > 0:
-            page = int(request.GET.get('page'))
+        if 'page' in request.POST and int(request.POST.get('page')) <= paginator.num_pages and int(request.POST.get('page')) > 0:
+            page = int(request.POST.get('page'))
         else:
-            page = 1
+            if 'page' in request.GET and int(request.GET.get('page')) <= paginator.num_pages and int(request.GET.get('page')) > 0:
+                page = int(request.GET.get('page'))
+            else:
+                page = 1
 
         if '_next' in request.GET or '_next' in request.POST:
             page += 1
@@ -400,24 +394,6 @@ lang_sel = never_cache(lang_sel)
 lang_sel = user_passes_test(lambda user: can_translate(user), settings.LOGIN_URL)(lang_sel)
 
 
-def can_translate(user):
-    if not getattr(settings, 'ROSETTA_REQUIRES_AUTH', True):
-        return True
-    if not user.is_authenticated():
-        return False
-    elif user.is_superuser and user.is_staff:
-        return True
-    else:
-        try:
-            from django.contrib.auth.models import Group
-            translators = Group.objects.get(name='translators')
-            return translators in user.groups.all()
-        except Group.DoesNotExist:
-            return False
-
-from microsofttranslator import Translator, TranslateApiException
-
-
 def translate_text(request):
     language_from = request.GET.get('from', None)
     language_to = request.GET.get('to', None)
@@ -438,4 +414,4 @@ def translate_text(request):
         except TranslateApiException as e:
             data = {'success': False, 'error': "Translation API Exception: {0}".format(e.message)}
 
-    return HttpResponse(json.dumps(data), mimetype='application/json')
+    return HttpResponse(json.dumps(data), content_type='application/json')

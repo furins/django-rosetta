@@ -38,5 +38,5 @@ def translate_text(language_from, language_to, text):
         except TranslateApiException as e:
             data = { 'success' : False, 'error' : "Translation API Exception: {0}".format(e.message) }
 
-    return HttpResponse(simplejson.dumps(data), mimetype='application/json')
+    return HttpResponse(simplejson.dumps(data), content_type='application/json')
     
