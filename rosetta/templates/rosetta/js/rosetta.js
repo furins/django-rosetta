@@ -1,4 +1,5 @@
 {% load rosetta %}
+{% load url from future %}
 
 google.setOnLoadCallback(function() {
     $('.location a').show().toggle(function() {

@@ -28,7 +28,7 @@ msgstr "Applicazione"
 
 #: templates/rosetta/languages.html:18
 msgid "Progress"
-msgstr "Progressione"
+msgstr "Progresso"
 
 #: templates/rosetta/languages.html:19
 msgid "Messages"
@@ -70,7 +70,7 @@ msgid ""
 "a> for a guide on how to set up internationalization for your project."
 msgstr ""
 "Vogliate riferirvi alla <a href=\"%(i18n_doc_link)s\">documentazione "
-"sull'internazionalizzazione di Django</a> per una giuda su come impostare le "
+"sull'internazionalizzazione di Django</a> per una guida su come impostare le "
 "traduzioni per il vostro progetto."
 
 #: templates/rosetta/pofile.html:8
@@ -83,23 +83,23 @@ msgstr "Scaricare il catalogo"
 
 #: templates/rosetta/pofile.html:21
 msgid "Progress: %(percent_translated)s%"
-msgstr "Progressione: %(percent_translated)s%"
+msgstr "Progresso: %(percent_translated)s%"
 
 #: templates/rosetta/pofile.html:23
 msgid "File is read-only: download the file when done editing!"
-msgstr "file in solo lettura: scaricare il file alla fine dell'edizione!"
+msgstr "file in solo lettura: scaricare il file alla fine delle modifiche!"
 
 #: templates/rosetta/pofile.html:24
 msgid ""
 "Some items in your last translation block couldn't be saved: this usually "
 "happens when the catalog file changes on disk after you last loaded it."
 msgstr "Alcuni elementi non sono stati salvati: questo capita solitamente quando "
-"il catalogo delle traduzioni è stato modificato dopo che voi l'abbiate caricato."
+"il catalogo delle traduzioni è stato modificato dopo che voi l'avete caricato."
 
 #: templates/rosetta/pofile.html:28
 #, python-format
 msgid "Translate into %(rosetta_i18n_lang_name)s"
-msgstr "Tradurre verso il %(rosetta_i18n_lang_name)s"
+msgstr "Tradurre in %(rosetta_i18n_lang_name)s"
 
 #: templates/rosetta/pofile.html:31
 msgid "Display:"
@@ -115,7 +115,7 @@ msgstr "Solo tradotti"
 
 #: templates/rosetta/pofile.html:34
 msgid "Fuzzy only"
-msgstr "Solo fuzzy"
+msgstr "Solo automatici"
 
 #: templates/rosetta/pofile.html:35
 msgid "All"
