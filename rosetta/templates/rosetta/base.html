@@ -14,8 +14,9 @@
     <script type="text/javascript">
     //<!--
         google.load("jquery", "1.3");
-        {% if rosetta_settings.ENABLE_TRANSLATION_SUGGESTIONS %}google.load("language", "1");{% endif %}
-        {% include 'rosetta/js/rosetta.js' %}
+        {% if rosetta_settings.ENABLE_TRANSLATION_SUGGESTIONS %}
+            {% include 'rosetta/js/rosetta.js' %}
+        {% endif %}
     //-->
     </script>
 </head>

@@ -7,7 +7,7 @@ google.setOnLoadCallback(function() {
         $('.hide', $(this).parent()).hide();
     });
 
-{% if ENABLE_TRANSLATION_SUGGESTIONS and AZURE_CLIENT_ID and AZURE_CLIENT_SECRET %}    
+{% if rosetta_settings.ENABLE_TRANSLATION_SUGGESTIONS %}    
 
     $('a.suggest').click(function(e){
         e.preventDefault();
@@ -17,10 +17,6 @@ google.setOnLoadCallback(function() {
         var trans=$('textarea',a.parent());
         var sourceLang = '{{ rosetta_settings.MESSAGES_SOURCE_LANGUAGE_CODE }}';
         var destLang = '{{ rosetta_i18n_lang_code }}';
-
-        var app_id = '{{ rosetta_settings.BING_APP_ID }}';
-        var apiUrl = "http://api.microsofttranslator.com/V2/Ajax.svc/Translate";
-
 
         orig = unescape(orig).replace(/<br\s?\/?>/g,'\n').replace(/<code>/,'').replace(/<\/code>/g,'').replace(/&gt;/g,'>').replace(/&lt;/g,'<');
         a.attr('class','suggesting').html('...');
