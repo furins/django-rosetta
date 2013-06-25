@@ -50,6 +50,7 @@ def home(request):
             out_ = out_.rstrip()
         return out_
 
+    query = ''
     storage = get_storage(request)
     version = rosetta.get_version(True)
 
@@ -99,7 +100,7 @@ def home(request):
                     if entry:
                         old_msgstr = entry.msgstr
                         if plural_id is not None:
-                            #plural_string = fix_nls(entry.msgstr_plural[plural_id], value)
+                            # plural_string = fix_nls(entry.msgstr_plural[plural_id], value)
                             plural_string = fix_nls(entry.msgid_plural, value)
                             entry.msgstr_plural[plural_id] = plural_string
                         else:
@@ -148,11 +149,11 @@ def home(request):
 
                     post_save.send(sender=None, language_code=rosetta_i18n_lang_code, request=request)
                     # Try auto-reloading via the WSGI daemon mode reload mechanism
-                    if  rosetta_settings.WSGI_AUTO_RELOAD and \
+                    if rosetta_settings.WSGI_AUTO_RELOAD and \
                         'mod_wsgi.process_group' in request.environ and \
                         request.environ.get('mod_wsgi.process_group', None) and \
                         'SCRIPT_FILENAME' in request.environ and \
-                        int(request.environ.get('mod_wsgi.script_reloading', '0')):
+                            int(request.environ.get('mod_wsgi.script_reloading', '0')):
                             try:
                                 os.utime(request.environ.get('SCRIPT_FILENAME'), None)
                             except OSError:
@@ -240,7 +241,7 @@ def home(request):
             rosetta_last_save_error = False
 
         return render_to_response('rosetta/pofile.html', dict(
-            version=rosetta.get_version(True),
+            version=version,
             ADMIN_MEDIA_PREFIX=ADMIN_MEDIA_PREFIX,
             ADMIN_IMAGE_DIR=ADMIN_IMAGE_DIR,
             rosetta_settings=rosetta_settings,
@@ -329,9 +330,9 @@ def list_languages(request, do_session_warn=False):
         has_pos = has_pos or len(pos)
         languages.append(
             (language[0],
-            _(language[1]),
-            sorted([(get_app_name(l), os.path.realpath(l), pofile(l)) for l in  pos], key=lambda app: app[0]),
-            )
+             _(language[1]),
+             sorted([(get_app_name(l), os.path.realpath(l), pofile(l)) for l in pos], key=lambda app: app[0]),
+             )
         )
     try:
         ADMIN_MEDIA_PREFIX = settings.ADMIN_MEDIA_PREFIX
@@ -408,13 +409,14 @@ def can_translate(user):
 
 from microsofttranslator import Translator, TranslateApiException
 
+
 def translate_text(request):
     language_from = request.GET.get('from', None)
     language_to = request.GET.get('to', None)
     text = request.GET.get('text', None)
 
     if language_from == language_to:
-        data = { 'success' : True, 'translation' : text }
+        data = {'success': True, 'translation': text}
     else:
         # run the translation:
         AZURE_CLIENT_ID = getattr(settings, 'AZURE_CLIENT_ID', None)
@@ -424,8 +426,8 @@ def translate_text(request):
 
         try:
             translated_text = translator.translate(text, language_to)
-            data = { 'success' : True, 'translation' : translated_text }
+            data = {'success': True, 'translation': translated_text}
         except TranslateApiException as e:
-            data = { 'success' : False, 'error' : "Translation API Exception: {0}".format(e.message) }
+            data = {'success': False, 'error': "Translation API Exception: {0}".format(e.message)}
 
     return HttpResponse(json.dumps(data), mimetype='application/json')
