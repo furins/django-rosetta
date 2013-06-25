@@ -203,6 +203,14 @@ def home(request):
             page = int(request.GET.get('page'))
         else:
             page = 1
+
+        if '_next' in request.GET or '_next' in request.POST:
+            page += 1
+            if page > paginator.num_pages:
+                page = 1
+                query_arg = '?page=%d' % page
+                return HttpResponseRedirect(reverse('rosetta-home') + iri_to_uri(query_arg))
+
         rosetta_messages = paginator.page(page).object_list
         main_language = None
         if rosetta_settings.MAIN_LANGUAGE and rosetta_settings.MAIN_LANGUAGE != rosetta_i18n_lang_code:
