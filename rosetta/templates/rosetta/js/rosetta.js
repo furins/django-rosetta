@@ -7,8 +7,6 @@ google.setOnLoadCallback(function() {
         $('.hide', $(this).parent()).hide();
     });
 
-{% if rosetta_settings.ENABLE_TRANSLATION_SUGGESTIONS %}    
-
     $('a.suggest').click(function(e){
         e.preventDefault();
         var a = $(this);
@@ -36,7 +34,6 @@ google.setOnLoadCallback(function() {
             }
         );
     });
-{% endif %}
 
     $('td.plural').each(function(i) {
         var td = $(this), trY = parseInt(td.closest('tr').offset().top);
